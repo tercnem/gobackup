@@ -18,6 +18,7 @@ require (
 	github.com/joho/godotenv v1.4.0
 	github.com/longbridgeapp/assert v1.1.0
 	github.com/pkg/sftp v1.13.5
+	github.com/rgzr/sshtun v1.0.0
 	github.com/sevlyar/go-daemon v0.1.6
 	github.com/spf13/viper v1.14.0
 	github.com/studio-b12/gowebdav v0.0.0-20221109171924-60ec5ad56012
@@ -44,7 +45,7 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-contrib/static v0.0.1
 	github.com/gin-gonic/gin v1.9.0

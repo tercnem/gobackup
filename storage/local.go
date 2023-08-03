@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -43,6 +42,16 @@ func (s *Local) upload(fileKey string) (err error) {
 	if err != nil {
 		return err
 	}
+
+	if s.viper != nil && s.viper.GetBool("google_drive_sync") {
+		logger.Info("Sync google drive")
+		_, err = helper.Exec("rclone", "sync", targetDir, s.viper.GetString("google_drive_rclone_remote_name")+":"+s.model.Name)
+		if err != nil {
+			logger.Info("error sync google drive")
+			return err
+		}
+		logger.Info("success sync google drive")
+	}
 	logger.Info("Store succeeded", targetPath)
 	return nil
 }
@@ -59,19 +68,24 @@ func (s *Local) list(parent string) ([]FileItem, error) {
 	remotePath := filepath.Join(s.path, parent)
 	var items = []FileItem{}
 
-	files, err := ioutil.ReadDir(remotePath)
+	files, err := os.ReadDir(remotePath)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, file := range files {
-		if !file.IsDir() {
+	for _, de := range files {
+		if !de.IsDir() {
+			file, err := de.Info()
+			if err != nil {
+				return nil, err
+			}
 			items = append(items, FileItem{
 				Filename:     file.Name(),
 				Size:         file.Size(),
 				LastModified: file.ModTime(),
 			})
 		}
+
 	}
 
 	return items, nil

@@ -23,7 +23,9 @@ models:
       local:
         type: local
         keep: 10
-        path: /Users/jason/Downloads/backup1
+        path: .gobackup
+        google_drive_sync: true
+        google_drive_rclone_remote_name: Walisongo
       scp:
         type: scp
         keep: 10
@@ -52,10 +54,18 @@ models:
       dummy_test:
         type: mysql
         host: localhost
-        port: 3306
-        database: dummy_test
-        username: root
-        password: 123456
+        port: 23306
+        database: test
+        username: test
+        password: test
+        ssh_host: www.test.com
+        ssh_port: 22
+        ssh_user: test
+        ssh_password: test
+        ssh_key_file:
+        tunnel_db_host: test
+        tunnel_remote_port: 3306
+        tunnel_local_port: 23306
       redis1:
         type: redis
         mode: sync

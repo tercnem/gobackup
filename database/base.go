@@ -1,11 +1,13 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"strings"
 
 	"github.com/google/shlex"
+	"github.com/rgzr/sshtun"
 	"github.com/spf13/viper"
 
 	"github.com/gobackup/gobackup/config"
@@ -15,11 +17,21 @@ import (
 
 // Base database
 type Base struct {
-	model    config.ModelConfig
-	dbConfig config.SubConfig
-	viper    *viper.Viper
-	name     string
-	dumpPath string
+	model            config.ModelConfig
+	dbConfig         config.SubConfig
+	viper            *viper.Viper
+	name             string
+	dumpPath         string
+	sshHost          string
+	sshPort          int
+	sshUser          string
+	sshPassword      string
+	sshKeyFile       string
+	tunnelLocalPort  int
+	tunnelRemotePort int
+	tunnelDbHost     string
+	cTunnelEnd       chan struct{}
+	cTunnelStart     chan struct{}
 }
 
 // Database interface
@@ -37,6 +49,14 @@ func newBase(model config.ModelConfig, dbConfig config.SubConfig) (base Base) {
 		viper:    dbConfig.Viper,
 		name:     dbConfig.Name,
 	}
+	base.sshHost = viper.GetString("ssh_host")
+	base.sshPort = viper.GetInt("ssh_port")
+	base.sshUser = viper.GetString("ssh_user")
+	base.sshPassword = viper.GetString("ssh_password")
+	base.sshKeyFile = viper.GetString("ssh_key_file")
+	base.tunnelDbHost = viper.GetString("tunnel_db_host")
+	base.tunnelRemotePort = viper.GetInt("tunnel_remote_port")
+	base.tunnelLocalPort = viper.GetInt("tunnel_local_port")
 	base.dumpPath = path.Join(model.DumpPath, dbConfig.Type, base.name)
 	if err := helper.MkdirP(base.dumpPath); err != nil {
 		logger.Errorf("Failed to mkdir dump path %s: %v", base.dumpPath, err)
@@ -115,7 +135,15 @@ func runModel(model config.ModelConfig, dbConfig config.SubConfig) (err error) {
 		return
 	}
 
+	if base.sshHost != "" {
+		base.openTunneling()
+		<-base.cTunnelStart
+	}
+
 	err = db.perform()
+	if base.sshHost != "" {
+		base.closeTunneling()
+	}
 	if err != nil {
 		logger.Info("Dump failed")
 		if len(afterScript) == 0 {
@@ -146,6 +174,65 @@ func runModel(model config.ModelConfig, dbConfig config.SubConfig) (err error) {
 	}
 
 	return
+}
+
+func (db *Base) closeTunneling() {
+	db.cTunnelEnd <- struct{}{}
+
+}
+
+func (db *Base) openTunneling() error {
+	db.cTunnelEnd = make(chan struct{}, 1)
+	db.cTunnelStart = make(chan struct{}, 1)
+
+	logger := logger.Tag("TUNNELING")
+	var err error
+	sshTun := sshtun.New(db.tunnelLocalPort, db.sshHost, db.tunnelRemotePort)
+	sshTun.SetPort(db.sshPort)
+	sshTun.SetUser(db.sshUser)
+	sshTun.SetPassword(db.sshPassword)
+	if db.sshKeyFile != "" {
+		sshTun.SetKeyFile(db.sshKeyFile)
+	}
+	//
+	sshTun.SetRemoteEndpoint(sshtun.NewTCPEndpoint(db.tunnelDbHost, db.tunnelRemotePort))
+	sshTun.SetLocalEndpoint(sshtun.NewTCPEndpoint("localhost", db.tunnelLocalPort))
+
+	sshTun.SetTunneledConnState(func(tun *sshtun.SSHTun, state *sshtun.TunneledConnState) {
+		logger.Infof("tunneling state %+v", state)
+	})
+
+	// We set a callback to know when the tunnel is ready
+	sshTun.SetConnState(func(tun *sshtun.SSHTun, state sshtun.ConnState) {
+		switch state {
+		case sshtun.StateStarting:
+			logger.Infof("Tunneling is Starting")
+		case sshtun.StateStarted:
+			logger.Infof("Tunneling is Started")
+			db.cTunnelStart <- struct{}{}
+		case sshtun.StateStopped:
+			logger.Infof("Tunneling is Stopped")
+		}
+	})
+
+	go func() {
+		<-db.cTunnelEnd
+		logger.Info("tunneling is Stop")
+		sshTun.Stop()
+	}()
+	go func() {
+		err = sshTun.Start(context.Background())
+		if err != nil {
+			logger.Info("error tunneling:", err)
+
+			if len(db.cTunnelStart) > 0 {
+				<-db.cTunnelStart
+			}
+			return
+		}
+	}()
+
+	return err
 }
 
 // Run databases
