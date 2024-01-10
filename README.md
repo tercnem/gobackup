@@ -2,7 +2,7 @@
 <img src="https://user-images.githubusercontent.com/5518/205909959-12b92929-4ac5-4bb5-9111-6f9a3ed76cf6.png" width="160" />
 
 <h1 align="center">GoBackup</h1>
-<p align="center">CLI tool for backup your databases, files to FTP / SCP / S3 / GCS and other cloud storages.</p>
+<p align="center">CLI tool for backup your databases, files to cloud storages in schedully.</p>
 <p align="center">
    <a href="https://github.com/gobackup/gobackup/actions?query=workflow%3AGo"><img src="https://github.com/gobackup/gobackup/workflows/Go/badge.svg" alt="Build Status" /></a>
    <a href="https://github.com/gobackup/gobackup/releases"><img src="https://img.shields.io/github/v/release/gobackup/gobackup?label=Version&color=1" alt="GitHub release (latest by date)"></a>
@@ -10,19 +10,19 @@
    <a href="https://formulae.brew.sh/formula/gobackup"><img alt="homebrew version" src="https://img.shields.io/homebrew/v/gobackup?color=success&label=Brew"></a>
 </p>
 
-GoBackup is a fullstack backup tool design for application servers, to backup your databases, files to cloud storages (Local disk, FTP, SCP, S3, GCS, Aliyun OSS ...).
+GoBackup is a backup tool design for application servers, to backup your databases, files to cloud storages (FTP, SCP, S3, GCS, Aliyun OSS ...) in schedully.
+
+Simple, easy to use, one time setup, run years without any maintenance, low cost (recycle), secure (encrypt compress).
 
 > Inspired by [backup/backup](https://github.com/backup/backup) and replace it for without Ruby dependency.
 
 [![asciicast](https://asciinema.org/a/543564.svg)](https://asciinema.org/a/543564)
 
-You can write a config file, run `gobackup perform` command by once to dump database as file, archive config files, and then package them into a single file.
+GoBackup 是一个为中小型服务器而设计备份工具，内置计划任务，帮你定时备份数据库、配置文件，通过导出、打包压缩，最终存储到外部云存储（如：FTP、SCP、S3、GCS、Aliyun OSS ...）。
 
-It's allow you store the backup file to local, FTP, SCP, S3 or other cloud storages.
+简单易用，一次性部署后能持续运行数年无需任何维护，存储成本低（回收机制），安全可靠（加密压缩）。
 
-GoBackup 是一个类似 [backup/backup](https://github.com/backup/backup) 的一站式备份工具，为中小型服务器／个人服务器而设计，配合内置的计划任务，实现定时备份的目的。
-
-使用 GoBackup 你可以通过一个简单的配置文件，一次（执行一个命令）将服务器上重要的（数据库、配置文件）东西导出、打包压缩，并备份到指定目的地（如：本地路径、FTP、云存储...）。
+> 🎈 [Ruby China](https://ruby-china.org) 的应用服务器从 GoBackup 设计之初（2017 年）开始就每日全量备份到外部的云存储，并持续数年一直默默的备份着，完全不需要维护。Aliyun OSS 上，每月成本仅为 0.2 RMB（文件回收周期为 1 个月）。
 
 https://gobackup.github.io
 
@@ -44,6 +44,7 @@ https://gobackup.github.io
 - MongoDB
 - SQLite
 - Microsoft SQL Server
+- InfluxDB
 
 ### Storages
 

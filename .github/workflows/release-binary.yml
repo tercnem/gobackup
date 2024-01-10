@@ -17,7 +17,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: 1.21
       - name: "Build Web"
         run: |
           cd web
@@ -53,6 +53,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             huacnlee/gobackup:latest
             huacnlee/gobackup:${{ steps.tagName.outputs.tag }}

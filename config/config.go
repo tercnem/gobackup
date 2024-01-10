@@ -136,7 +136,9 @@ func Init(configFile string) error {
 	viper.OnConfigChange(func(in fsnotify.Event) {
 		logger.Info("Config file changed:", in.Name)
 		defer onConfigChanged(in)
-		loadConfig()
+		if err := loadConfig(); err != nil {
+			logger.Error(err.Error())
+		}
 	})
 
 	return loadConfig()
@@ -176,7 +178,7 @@ func loadConfig() error {
 
 	logger.Info("Config file:", viperConfigFile)
 
-	// load .env if exists in the same direcotry of used config file and expand variables in the config
+	// load .env if exists in the same directory of used config file and expand variables in the config
 	dotEnv := filepath.Join(filepath.Dir(viperConfigFile), ".env")
 	if _, err := os.Stat(dotEnv); err == nil {
 		if err := godotenv.Load(dotEnv); err != nil {
@@ -197,8 +199,9 @@ func loadConfig() error {
 		// use temp dir as workdir
 		dir, err := os.MkdirTemp("", "gobackup")
 		if err != nil {
-			logger.Fatal(err)
+			return err
 		}
+
 		viper.Set("workdir", dir)
 		viper.Set("useTempWorkDir", true)
 	}
@@ -206,11 +209,16 @@ func loadConfig() error {
 	Exist = true
 	Models = []ModelConfig{}
 	for key := range viper.GetStringMap("models") {
-		Models = append(Models, loadModel(key))
+		model, err := loadModel(key)
+		if err != nil {
+			return fmt.Errorf("load model %s: %v", key, err)
+		}
+
+		Models = append(Models, model)
 	}
 
 	if len(Models) == 0 {
-		logger.Fatalf("No model found in %s", viperConfigFile)
+		return fmt.Errorf("No model found in %s", viperConfigFile)
 	}
 
 	// Load web config
@@ -228,7 +236,8 @@ func loadConfig() error {
 	return nil
 }
 
-func loadModel(key string) (model ModelConfig) {
+func loadModel(key string) (ModelConfig, error) {
+	var model ModelConfig
 	model.Name = key
 
 	workdir, _ := os.Getwd()
@@ -259,12 +268,12 @@ func loadModel(key string) (model ModelConfig) {
 	loadStoragesConfig(&model)
 
 	if len(model.Storages) == 0 {
-		logger.Fatalf("No storage found in model %s", model.Name)
+		return ModelConfig{}, fmt.Errorf("No storage found in model %s", model.Name)
 	}
 
 	loadNotifiersConfig(&model)
 
-	return
+	return model, nil
 }
 
 func loadScheduleConfig(model *ModelConfig) {
